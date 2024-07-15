@@ -3,7 +3,7 @@ from typing import Callable, NoReturn
 import numpy as np
 
 from base_module import BaseModule
-from base_learning_rate import  BaseLR
+from base_learning_rate import BaseLR
 from learning_rate import FixedLR
 
 OUTPUT_VECTOR_TYPE = ["last", "best", "average"]
@@ -40,6 +40,7 @@ class GradientDescent:
         Callable function receives as input any argument relevant for the current GD iteration. Arguments
         are specified in the `GradientDescent.fit` function
     """
+
     def __init__(self,
                  learning_rate: BaseLR = FixedLR(1e-3),
                  tol: float = 1e-5,
@@ -120,4 +121,65 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        raise NotImplementedError()
+        # Initialize the iteration counter
+        t = 0
+        # Initialize delta to the tolerance to enter the loop
+        delta = self.tol_
+        # Make a copy of the initial weights to store the previous weights
+        prev_weights = np.copy(f.weights)
+
+        # TODO start - old section
+        # # Initialize the best weights to None
+        # best_weights = None
+        # # Initialize the best value to infinity, to ensure any actual value found will be lower
+        # best_val = np.inf
+        # # Initialize cumulative weights for averaging
+        # total_weights = np.zeros_like(f.weights)
+        # TODO end - old section
+
+        # TODO start - new section
+        # Initialize cumulative weights for averaging
+        total_weights = np.zeros_like(f.weights)
+        # Compute the initial value of the objective function
+        best_val = f.compute_output(X=X, y=y)
+        # Initialize the best weights to the initial weights
+        best_weights = np.copy(f.weights)
+        # TODO start - old section
+
+        # Loop until the maximum number of iterations is reached or convergence criteria is met
+        while t < self.max_iter_ and delta >= self.tol_:
+            # Compute the current value of the objective function
+            val = f.compute_output(X=X, y=y)
+            # Compute the gradient of the objective function
+            grad = f.compute_jacobian(X=X, y=y)
+            # Compute the learning rate for the current iteration
+            eta = self.learning_rate_.lr_step(f=f, x=X, dx=-grad, t=t)
+
+            # Update the weights using the gradient descent update rule
+            f.weights -= eta * grad
+            # Accumulate the weights for averaging
+            total_weights += f.weights
+
+            # Update the iteration counter
+            t += 1
+            # Compute the change in weights
+            delta = np.linalg.norm(f.weights - prev_weights)
+            # Update the previous weights
+            prev_weights = np.copy(f.weights)
+
+            # Update best weights if current value is better than previous best
+            if val < best_val:
+                best_val = val
+                best_weights = f.weights
+
+            # Call the callback function with the current state
+            self.callback_(solver=self, weight=np.copy(f.weights), val=val, grad=grad, t=t,
+                           eta=eta, delta=delta)
+
+        # Return the appropriate solution based on the specified out_type_
+        if self.out_type_ == "last":
+            return f.weights
+        if self.out_type_ == "best":
+            return best_weights
+        if self.out_type_ == "average":
+            return total_weights / t
