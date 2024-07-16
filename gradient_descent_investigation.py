@@ -81,83 +81,56 @@ def get_gd_state_recorder_callback() -> Tuple[
     weights: List[np.ndarray]
         Recorded parameters
     """
-    v = []
-    w = []
+    vals = []
+    weights = []
 
     def callback(val, weight, **kwargs):
-        v.append(val)
-        w.append(weight)
+        vals.append(val)
+        weights.append(weight)
 
-    return (callback, v, w)
+    return (callback, vals, weights)
 
 
 def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                  etas: Tuple[float] = (1, .1, .01, .001)):
-    def get_gd_state_recorder_callback() -> Tuple[
-        Callable[[], None], List[np.ndarray], List[np.ndarray]]:
-        """
-        Callback generator for the GradientDescent class, recording the objective's value and parameters at each iteration
+    for i in {1, 2}:
+        # Select module (L1 and then L2)
+        module = L1 if i == 1 else L2
+        # Dictionary to store recorded values and weights per eta
+        results = dict()
 
-        Return:
-        -------
-        callback: Callable[[], None]
-            Callback function to be passed to the GradientDescent class, recoding the objective's value and parameters
-            at each iteration of the algorithm
+        for eta in etas:
+            # Retrieve a new callback function
+            callback, vals, weights = get_gd_state_recorder_callback()
 
-        values: List[np.ndarray]
-            Recorded objective values
+            # Create a GradientDescent instance with the specified learning rate
+            GD = GradientDescent(learning_rate=FixedLR(eta), callback=callback)
+            # Fit the model to minimize the given objective with the initial weights
+            GD.fit(module(weights=np.copy(init)), None, None)
+            # Store the recorded values and weights for the current learning rate
+            results[eta] = (vals, weights)
 
-        weights: List[np.ndarray]
-            Recorded parameters
-        """
-        vals = []
-        weights = []
+            # Plot algorithm's descent path
+            title = f"L{i} (Learning-Rate={eta})"
+            file_path = f"plots/GD_L{i}_eta_{eta}.png"
+            plot_descent_path(module, np.array([init] + weights), title).write_image(file_path)
 
-        def callback(val, weight, **kwargs):
-            vals.append(val)
-            weights.append(weight)
+        # Plot algorithm's convergence for the different values of eta
+        x_title = "Gradient-Descent iteration"
+        y_title = "Norm"
+        title = f"L{i} Gradient-Descent convergence for different Learning-Rates"
+        layout = go.Layout(xaxis=dict(title=x_title), yaxis=dict(title=y_title), title=title)
+        fig = go.Figure(layout=layout)
+        mode = "lines"
 
-        return (callback, vals, weights)
-
-    def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
-                                     etas: Tuple[float] = (1, .1, .01, .001)):
-        for i in {1, 2}:
-            # Select module (L1 and then L2)
-            module = L1 if i == 1 else L2
-            # Dictionary to store recorded values and weights per eta
-            results = dict()
-
-            for eta in etas:
-                # Retrieve a new callback function
-                callback, vals, weights = get_gd_state_recorder_callback()
-
-                # Create a GradientDescent instance with the specified learning rate
-                GD = GradientDescent(learning_rate=FixedLR(eta), callback=callback)
-                # Fit the model to minimize the given objective with the initial weights
-                GD.fit(module(weights=np.copy(init)), None, None)
-                # Store the recorded values and weights for the current learning rate
-                results[eta] = (vals, weights)
-
-                # Plot algorithm's descent path
-                title = f"L{i}: Learning-Rate={eta}"
-                file_path = f"../plots/GD_L{i}_eta_{eta}.png"
-                plot_descent_path(module, np.array([init] + weights), title).write_image(file_path)
-
-            # Plot algorithm's convergence for the different values of eta
-            x_title = "Gradient-Descent iteration"
-            y_title = "Norm"
-            title = f"L{i} Gradient-Descent convergence for different Learning-Rates"
-            layout = go.Layout(xaxis=dict(title=x_title), yaxis=dict(title=y_title), title=title)
-            fig = go.Figure(layout)
-            mode = "lines"
+        # Add traces for each learning rate's convergence
+        for eta, (v, _) in results.items():
             name = rf"$\eta={eta}$"
-            # Add traces for each learning rate's convergence
-            for eta, (v, _) in results.items():
-                fig.add_trace(go.Scatter(x=list(range(len(v))), y=v, mode=mode, name=name))
+            fig.add_trace(go.Scatter(x=list(range(len(v))), y=v, mode=mode, name=name))
 
-            # Save the convergence plot image
-            file_path = f"../plots/GD_L{i}_fixed_rate_convergence.png"
-            fig.write_image(file_path)
+        # Save the convergence plot image
+        file_path = f"plots/GD_L{i}_fixed_rate_convergence.png"
+        fig.write_image(file_path)
 
 
 def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
@@ -207,4 +180,4 @@ def fit_logistic_regression():
 if __name__ == '__main__':
     np.random.seed(0)
     compare_fixed_learning_rates()
-    fit_logistic_regression()
+    # fit_logistic_regression()
