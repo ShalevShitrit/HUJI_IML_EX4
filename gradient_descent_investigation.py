@@ -216,9 +216,9 @@ def fit_logistic_regression():
     roc_auc = auc(fpr, tpr)
     plot_ROC_curve(fpr, roc_auc, tpr)
 
-    # Calculate the optimal threshold alpha
+    # Calculate the optimal alpha threshold
     print('\n> Calculating optimal alpha threshold:')
-    optimal_alpha_threshold(X_test, fpr, model, thresholds, tpr, y_test)
+    calculate_optimal_threshold(X_test, fpr, model, thresholds, tpr, y_test)
 
     # Fitting l1- and l2-regularized logistic regression models, using cross-validation to specify
     # values of regularization parameter
@@ -246,11 +246,11 @@ def fit_logistic_regression():
     xaxis = dict(title=r"$\lambda$", type="log")
     yaxis_title = r"$\text{Error Value}$"
     fig_layout = go.Layout(title=title, xaxis=xaxis, yaxis_title=yaxis_title)
-    fig = go.Figure([go.Scatter(x=lambdas, y=res[:, 0], name="Train Error"),
-                     go.Scatter(x=lambdas, y=res[:, 1], name="Validation Error")],
+    fig = go.Figure([go.Scatter(x=lambdas, y=res[:, 0], name="Train-Error"),
+                     go.Scatter(x=lambdas, y=res[:, 1], name="Validation-Error")],
                     layout=fig_layout)
 
-    # Save cross-validation plot to an HTML file
+    # Save cross-validation plot to a PNG file
     file_path = f"plots/LR_cross_validation.png"
     fig.write_image(file_path)
 
@@ -266,39 +266,42 @@ def fit_logistic_regression():
 
     # Print the optimal regularization parameter and the test error of the final model
     print(f'\n> Optimal regularization parameter: {lam_opt}.')
-    print(f'  > Model achieved test error of {round(model.loss(X_test.values, y_test.values), 2)}.')
+    print(f'  > Model test error with this parameter: {round(model.loss(X_test.values, y_test.values), 2)}.')
 
 
 def plot_ROC_curve(fpr, roc_auc, tpr):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'ROC curve (area = {roc_auc:.2f})'))
+
     # Add a dashed diagonal line to represent a random classifier
     line_dict = dict(dash='dash')
     fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='Random', line=line_dict))
+
     # Update plot layout with titles and axis labels
     title_layout = 'Receiver Operating Characteristic (ROC)'
     xaxis_layout = 'False-Positive Rate'
     yaxis_layout = 'True-Positive Rate'
     fig.update_layout(title=title_layout, xaxis_title=xaxis_layout, yaxis_title=yaxis_layout)
-    # Save ROC curve plot to an HTML file
+
+    # Save ROC curve plot to a PNG file
     file_path = f"plots/LR_ROC_curve.png"
     fig.write_image(file_path)
 
 
-def optimal_alpha_threshold(X_test, fpr, model, thresholds, tpr, y_test):
+def calculate_optimal_threshold(X_test, fpr, model, thresholds, tpr, y_test):
     # Find the index of the optimal threshold where the difference between TPR and FPR is maximized
     optimal_idx = np.argmax(tpr - fpr)
 
     # Get the optimal threshold value
     optimal_alpha = thresholds[optimal_idx]
-    print(f'  > Optimal alpha threshold: {optimal_alpha}.')
+    print(f'  > Optimal TPR-FPR threshold: {optimal_alpha}.')
 
     # Update the model with the optimal alpha
     model.alpha_ = optimal_alpha
 
     # Compute and print the test error at the optimal alpha
     test_error = model._loss(X_test.values, y_test.values)
-    print(f'  > Test error at optimal alpha: {test_error}.')
+    print(f'  > Test error with this threshold: {test_error}.')
 
 
 if __name__ == '__main__':

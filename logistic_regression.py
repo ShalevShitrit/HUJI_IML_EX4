@@ -92,8 +92,6 @@ class LogisticRegression(BaseEstimator):
         # Add intercept term if specified
         if self.include_intercept_:
             X = np.c_[np.ones(len(X)), X]
-            # intercept = np.ones((X.shape[0], 1)) #TODO אפשר להחליף את שתי שורות אלה בשורה שמעל
-            # X = np.hstack((intercept, X))
 
         # Initialize weights
         init_weights = np.random.randn(X.shape[1]) / np.sqrt(X.shape[1])
