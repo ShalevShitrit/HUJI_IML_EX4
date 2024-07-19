@@ -34,8 +34,10 @@ class L2(BaseModule):
         output: ndarray of shape (1,)
             Value of function at point self.weights
         """
-        return (self.weights ** 2).sum(axis=-1)
-        # TODO check sum() instead of sum(axis=-1)
+        if self.weights_ is None:
+            raise ValueError("Weights must be initialized before computing output.")
+
+        return np.sum(self.weights_ ** 2)  # L2 Norm
 
     def compute_jacobian(self, **kwargs) -> np.ndarray:
         """
@@ -51,7 +53,10 @@ class L2(BaseModule):
         output: ndarray of shape (n_in,)
             L2 derivative with respect to self.weights at point self.weights
         """
-        return 2 * self.weights
+        if self.weights_ is None:
+            raise ValueError("Weights must be initialized before computing output.")
+
+        return 2 * self.weights_
 
 
 class L1(BaseModule):
@@ -80,8 +85,7 @@ class L1(BaseModule):
         output: ndarray of shape (1,)
             Value of function at point self.weights
         """
-        return np.abs(self.weights).sum(axis=-1)
-        # TODO check sum() instead of sum(axis=-1)
+        return np.sum(np.abs(self.weights))  # L1 Norm
 
     def compute_jacobian(self, **kwargs) -> np.ndarray:
         """
@@ -139,7 +143,8 @@ class LogisticModule(BaseModule):
         yz = y * z  # Product of labels and linear combination
         log_exp_term = np.log(1 + np.exp(z))  # Logarithm of the exponential term
 
-        output = -np.sum(yz - log_exp_term) / X.shape[0]  # Mean objective value
+        m = X.shape[0]  # Samples number
+        output = - (1 / m) * np.sum(yz - log_exp_term) / m  # Mean objective value
         return output
 
     def compute_jacobian(self, X: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
@@ -163,8 +168,8 @@ class LogisticModule(BaseModule):
         ez = np.exp(z)  # Exponential of the linear combination
         sigmoid = ez / (1 + ez)  # Sigmoid function
 
-        # Gradient of the logistic regression objective function
-        gradient = -np.mean((y - sigmoid)[:, None] * X, axis=0)
+        m = X.shape[0]  # Samples number
+        gradient = (1 / m) * X.T @ (sigmoid - y)  # Logistic regression objective's gradient
         return gradient
 
 
@@ -254,7 +259,7 @@ class RegularizedModule(BaseModule):
         -------
         weights: ndarray of shape (n_in, n_out)
         """
-        return self.fidelity_module_.weights
+        return self.fidelity_module_.weights_
 
     @weights.setter
     def weights(self, weights: np.ndarray) -> None:
@@ -270,5 +275,5 @@ class RegularizedModule(BaseModule):
             Weights to set for module
         """
         intercept_i = int(self.include_intercept_)
-        self.fidelity_module_.weights = weights
-        self.regularization_module_.weights = np.r_[np.zeros(intercept_i), weights[intercept_i:]]
+        self.fidelity_module_.weights_ = weights
+        self.regularization_module_.weights_ = np.r_[np.zeros(intercept_i), weights[intercept_i:]]

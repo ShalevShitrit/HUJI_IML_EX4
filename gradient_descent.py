@@ -121,30 +121,19 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        # Initialize the iteration counter
-        t = 0
-        # Initialize delta to the tolerance to enter the loop
-        delta = self.tol_
-        # Make a copy of the initial weights to store the previous weights
-        prev_weights = np.copy(f.weights)
-
-        # TODO start - old section
-        # # Initialize the best weights to None
-        # best_weights = None
-        # # Initialize the best value to infinity, to ensure any actual value found will be lower
-        # best_val = np.inf
-        # # Initialize cumulative weights for averaging
-        # total_weights = np.zeros_like(f.weights)
-        # TODO end - old section
-
-        # TODO start - new section
         # Initialize cumulative weights for averaging
         total_weights = np.zeros_like(f.weights)
         # Compute the initial value of the objective function
         best_val = f.compute_output(X=X, y=y)
         # Initialize the best weights to the initial weights
         best_weights = np.copy(f.weights)
-        # TODO start - old section
+
+        # Initialize the iteration counter
+        t = 0
+        # Initialize delta to the tolerance to enter the loop
+        delta = self.tol_
+        # Make a copy of the initial weights to store the previous weights
+        prev_weights = np.copy(f.weights)
 
         # Loop until the maximum number of iterations is reached or convergence criteria is met
         while t < self.max_iter_ and delta >= self.tol_:
@@ -162,10 +151,8 @@ class GradientDescent:
 
             # Update the iteration counter
             t += 1
-            # Compute the change in weights
-            delta = np.linalg.norm(f.weights - prev_weights)
-            # Update the previous weights
-            prev_weights = np.copy(f.weights)
+            # Update the previous weights and Compute the change in weights
+            prev_weights, delta = np.copy(f.weights), np.linalg.norm(f.weights - prev_weights)
 
             # Update best weights if current value is better than previous best
             if val < best_val:
@@ -173,8 +160,8 @@ class GradientDescent:
                 best_weights = f.weights
 
             # Call the callback function with the current state
-            self.callback_(solver=self, weight=np.copy(f.weights), val=val, grad=grad, t=t,
-                           eta=eta, delta=delta)
+            w = np.copy(f.weights)
+            self.callback_(solver=self, weights=w, val=val, grad=grad, t=t, eta=eta, delta=delta)
 
         # Return the appropriate solution based on the specified out_type_
         if self.out_type_ == "last":

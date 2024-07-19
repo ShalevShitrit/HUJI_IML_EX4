@@ -92,6 +92,8 @@ class LogisticRegression(BaseEstimator):
         # Add intercept term if specified
         if self.include_intercept_:
             X = np.c_[np.ones(len(X)), X]
+            # intercept = np.ones((X.shape[0], 1)) #TODO אפשר להחליף את שתי שורות אלה בשורה שמעל
+            # X = np.hstack((intercept, X))
 
         # Initialize weights
         init_weights = np.random.randn(X.shape[1]) / np.sqrt(X.shape[1])
@@ -99,7 +101,7 @@ class LogisticRegression(BaseEstimator):
         # Determine the objective based on the penalty type
         if self.penalty_ == "none":
             objective = LogisticModule(weights=init_weights)
-        else:
+        else:  # L1 or L2
             fidelity_module = LogisticModule()
             regularization_module = {"l1": L1, "l2": L2}[self.penalty_]()
             objective = RegularizedModule(fidelity_module=fidelity_module,
