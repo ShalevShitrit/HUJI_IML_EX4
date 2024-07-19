@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pandas as pd
 from typing import Tuple, List, Callable, Type
@@ -105,10 +107,10 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
     print('                       Compare Fixed Learning Rates                      ')
     print('-------------------------------------------------------------------------')
 
-    print('\n> Creating GD plots for l1 and l2:')
     for i in {1, 2}:
         # Select module (L1 and then L2)
         model = L1 if i == 1 else L2
+        print(f'\n> Creating GD plots for L{i}:')
         # Dictionary to store recorded values and weights per eta
         results = dict()
 
@@ -130,7 +132,7 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
             file_path = f"plots/GD_L{i}_eta_{eta}.png"
             fig.write_image(file_path)
 
-        print(f"    > Creating plot for convergent rate with L{i}.\n")
+        print(f"  > Creating plot for convergent rate with L{i}.")
         # Plot algorithm's convergence for the different values of eta
         x_title = "Gradient-Descent iteration"
         y_title = "Norm"
@@ -140,15 +142,22 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
         mode = "lines"
 
         # Add traces for each learning rate's convergence
+        min_loss = math.inf
         for eta, (v, _) in results.items():
             name = rf"$\eta={eta}$"
             x_scatter = list(range(len(v)))
             go_scatter = go.Scatter(x=x_scatter, y=v, mode=mode, name=name)
             fig.add_trace(go_scatter)
 
+            # TODO
+            min_loss = min(min_loss, min(v))
+
         # Generate the convergence plot image
         file_path = f"plots/GD_L{i}_fixed_rate_convergence.png"
         fig.write_image(file_path)
+
+        # TODO
+        print(f"  > Lowest loss achieved when minimizing L{i}: {min_loss}.")
 
 
 def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
@@ -184,6 +193,7 @@ def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
 
 
 def fit_logistic_regression():
+    print()
     print('-------------------------------------------------------------------------')
     print('                         Fit Logistic Regression                         ')
     print('-------------------------------------------------------------------------')
@@ -242,7 +252,7 @@ def fit_logistic_regression():
         print(f'  > penalty: L1 | lambda: {lam} | train error: {train_e} | test error: {test_e}.')
 
     # Plot training and validation errors for different lambda values
-    title = r"$\text{Train and Validation errors (averaged over the k-folds)}$"
+    title = r"$\text{Train and Validation Errors for Different Lambdas (Averaged over k-Folds)}$"
     xaxis = dict(title=r"$\lambda$", type="log")
     yaxis_title = r"$\text{Error Value}$"
     fig_layout = go.Layout(title=title, xaxis=xaxis, yaxis_title=yaxis_title)
@@ -266,12 +276,14 @@ def fit_logistic_regression():
 
     # Print the optimal regularization parameter and the test error of the final model
     print(f'\n> Optimal regularization parameter: {lam_opt}.')
-    print(f'  > Model test error with this parameter: {round(model.loss(X_test.values, y_test.values), 2)}.')
+    print(
+        f'  > Model test error with this parameter: {round(model.loss(X_test.values, y_test.values), 2)}.')
 
 
 def plot_ROC_curve(fpr, roc_auc, tpr):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'ROC curve (area = {roc_auc:.2f})'))
+    name = f'ROC Curve - AUC={roc_auc:.3f})'
+    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=name))
 
     # Add a dashed diagonal line to represent a random classifier
     line_dict = dict(dash='dash')
